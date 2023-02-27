@@ -42,19 +42,14 @@ Parameters:
 
   ProductSupportURLParameter:
     Type: String
-    Default: 'https://github.com/aws-samples/sagemaker-custom-project-templates'
+    Default: 'https://github.com/tchattha/sm-bitbucket-mlops'
     Description: The support url of this product within the portfolio.
 
   SageMakerProjectRepoZipParameter:
     Type: String
-    Default: 'https://github.com/aws-samples/sagemaker-custom-project-templates/archive/refs/heads/main.zip'
+    Default: 'https://github.com/tchattha/sm-bitbucket-mlops/archive/main.zip'
     Description: 'URL for a Zip of the SageMaker Projects Examples GitHub Repo'
 
-  SageMakerProjectRepoNameBranchParameter:
-    Type: String
-    Default: 'sagemaker-custom-project-templates-main'
-    Description: 'Name/Branch of the SageMaker Projects Examples GitHub Repo'
-  
   SageMakerProjectsProjectNameParameter:
     Type: String
     Default: mlops-template-bitbucket
@@ -68,10 +63,12 @@ Parameters:
   BitbucketUsernameParameter:
     Type: String
     Description: Bitbucket Username to be used for creating resources
+    NoEcho: True
   
   BitbucketAppPasswordParameter:
     Type: String
     Description: Bitbucket App Password to be used for creating resources
+    NoEcho: True
 
 Metadata: 
   AWS::CloudFormation::Interface: 
@@ -101,7 +98,6 @@ Metadata:
           default: "Source Code Repository Configuration (leave defaults if not forking the repository)"
         Parameters: 
           - SageMakerProjectRepoZipParameter
-          - SageMakerProjectRepoNameBranchParameter
           - SageMakerProjectsProjectNameParameter
       - 
         Label: 
@@ -140,9 +136,6 @@ Metadata:
       SageMakerProjectRepoZipParameter:
         default: 'URL to the zipped version of your GitHub Repository'
 
-      SageMakerProjectRepoNameBranchParameter:
-        default: 'Name and branch of your GitHub Repository, should match the root folder of the zip'
-
       SageMakerProjectsProjectNameParameter:
         default: 'Project folder inside of the main repository for this project.'
       
@@ -156,22 +149,18 @@ Metadata:
         default: 'Bitbucket App Password'
 
 Resources:
-  BitbucketUsernameTokenSecret:
-    Type: AWS::SecretsManager::Secret
-      Properties: 
-        Description: String
-        Name: !Join ['-',['SMP-Bitbucket-Username-Token', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
-        SecretString: 
-          !Ref BitbucketUsernameParameter
-  
   BitbucketAppPasswordTokenSecret:
     Type: AWS::SecretsManager::Secret
-      Properties: 
-        Description: String
-        Name: !Join ['-',['SMP-Bitbucket-App-Password-Token', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
-        SecretString: 
-          !Ref BitbucketAppPasswordParameter
+    Properties:
+      Name: !Join ['-',['SMP-Bitbucket-App-Password-Token', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      SecretString: !Ref BitbucketAppPasswordParameter
 
+  BitbucketUsernameTokenSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Join ['-',['SMP-Bitbucket-Username-Token', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
+      SecretString: !Ref BitbucketUsernameParameter
+  
   BitbucketIAMUser:
     Type: AWS::IAM::User
     Properties: 
@@ -537,7 +526,7 @@ Resources:
       Runtime: python3.9
       Role: !GetAtt BootstrapLambdaExecutionRole.Arn
       Handler: index.lambda_handler
-      Timeout: 9000
+      Timeout: 900
       Code:
         ZipFile: |
           import cfnresponse

@@ -112,7 +112,7 @@ Resources:
       Handler: lambda_function.lambda_handler
       Runtime: python3.9
       FunctionName: !Sub sagemaker-${SageMakerProjectId}-git-seedcodecheckin # max: 10+15+19=44 out of 64 max
-      Timeout: 6000
+      Timeout: 600
       Role: AWSDEFAULT___USE_ROLE___
       Code:
         S3Bucket: AWSDEFAULT___CODE_STAGING_BUCKET___
@@ -149,7 +149,7 @@ Resources:
       Handler: lambda_function.lambda_handler
       Runtime: python3.8
       FunctionName: !Sub sagemaker-${SageMakerProjectId}-bitbucket-trigger # max: 10+15+19=44 out of 64 max
-      Timeout: 6000
+      Timeout: 600
       Role: AWSDEFAULT___USE_ROLE___
       Code:
         S3Bucket: AWSDEFAULT___CODE_STAGING_BUCKET___
