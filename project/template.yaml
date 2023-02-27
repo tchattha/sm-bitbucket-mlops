@@ -1,0 +1,223 @@
+Description: Toolchain template which provides the resources needed to represent infrastructure as code. The template creates 2 source control repositories in Bitbucket and creates a CI/CD pipeline using Bitbucket Pipeline to build a model using a SageMaker Pipeline and deploy the resulting trained ML Model from Model Registry to two stages in CD -- staging and production.
+
+Parameters:
+  SageMakerProjectName:
+    Type: String
+    Description: Name of the project
+    NoEcho: true
+    MinLength: 1
+    MaxLength: 32
+    AllowedPattern: ^[a-zA-Z](-*[a-zA-Z0-9])*
+
+  SageMakerProjectId:
+    Type: String
+    NoEcho: true
+    Description: Service generated ID of the project.
+
+  BitbucketServer:
+    Type: String
+    MaxLength: 1024
+    Description: The path to the Bitbucket Server, e.g. 'https://api.bitbucket.org/2.0', http://10.0.0.1
+  
+  RepositoryBaseUrl:
+    Type: String
+    MaxLength: 1024
+    Description: The base path to the Bitbucket account to create the repository within. e.g. https://bitbucket.org/
+
+  ModelBuildCodeRepositoryName:
+    Type: String
+    MaxLength: 1024
+    Description: Repository name of the Model Building and Training Code Repository
+
+  ModelDeployCodeRepositoryName:
+    Type: String
+    MaxLength: 1024
+    Description: Repository name of the Model Deplyment Code Repository
+  
+  WorkspaceName:
+    Type: String
+    MaxLength: 1024
+    Description: The name of the workspace in Bitbucket to create the repositories in.
+  
+  BitbucketUserSecretName:
+    Type: String
+    MaxLength: 1023
+    Description: The Bitbucket Username to use
+  
+  BitbucketAppPasswordSecretName:
+    Type: String
+    MaxLength: 1024
+    Description: The Bitbucket App Password to use
+  
+  IAMAccessKeySecretName:
+    Type: String
+    MaxLength: 1024
+    Description: The IAM Access Key to use
+  
+  IAMSecretKeySecretName:
+    Type: String
+    MaxLength: 1024
+    Description: The IAM Secret Key to use
+  
+  StagingBucket:
+    Type: String
+    MaxLength: 1024
+    Description: S3 Bucket where Seed Code is placed.
+  
+  ProjectName:
+    Type: String
+    MaxLength: 1024
+    Description: S3 URI to Model Deploy Seed Code
+  
+  SageMakerRole:
+    Type: String
+    MaxLength: 1024
+    Description: SageMaker Role to run pipeline
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: "Code Repository Info"
+        Parameters:
+          - BitbucketServer
+          - RepositoryBaseUrl
+          - ModelBuildCodeRepositoryName
+          - ModelDeployCodeRepositoryName
+          - WorkspaceName
+        
+    ParameterLabels:
+      BitbucketServer:
+        default: "Bitbucket Server URI. e.g. https://api.bitbucket.org/2.0"
+      RepositoryBaseUrl:
+        default: "Base URL for your Bitbucket Repositories. e.g. https://bitbucket.org/"
+      ModelBuildCodeRepositoryName:
+        default: "Model Build Repository Name"
+      ModelDeployCodeRepositoryName:
+        default: "Model Deploy Repository Name"
+      WorkspaceName:
+        default: "Bitbucket Workspace name."
+
+Resources:
+  MlOpsArtifactsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub sagemaker-project-${SageMakerProjectId} # 58 chars max/ 64 allowed
+
+  GitSeedCodeCheckinLambda:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Description: To trigger the codebuild project for the seedcode checkin
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.9
+      FunctionName: !Sub sagemaker-${SageMakerProjectId}-git-seedcodecheckin # max: 10+15+19=44 out of 64 max
+      Timeout: 6000
+      Role: AWSDEFAULT___USE_ROLE___
+      Code:
+        S3Bucket: AWSDEFAULT___CODE_STAGING_BUCKET___
+        S3Key: AWSDEFAULT___PROJECT_NAME___/seedcode/lambda-seedcode-checkin-bitbucket.zip
+      Environment:
+        Variables:
+          BitbucketServer: AWSDEFAULT___BITBUCKET_SERVER_URI___
+          WorkspaceName: !Sub ${WorkspaceName}
+          DeployProjectName: !Sub ${ModelDeployCodeRepositoryName}
+          BuildProjectName: !Sub ${ModelBuildCodeRepositoryName}
+          SageMakerProjectName: !Sub ${SageMakerProjectName}
+          SageMakerProjectId: !Sub ${SageMakerProjectId}
+          BitbucketUsernameSecretName: AWSDEFAULT___BITBUCKET_USERNAME_TOKEN_SECRET_NAME___
+          BitbucketAppPasswordSecretName: AWSDEFAULT___BITBUCKET_APP_PASSWORD_TOKEN_SECRET_NAME___
+          IAMAccessKeySecretName: AWSDEFAULT___IAM_ACCESS_KEY_SECRET_NAME___
+          IAMSecretKeySecretName: AWSDEFAULT___IAM_SECRET_KEY_SECRET_NAME___
+          SeedCodeBucket: AWSDEFAULT___CODE_STAGING_BUCKET___
+          ModelBuildSeedCode: AWSDEFAULT___PROJECT_NAME___/seedcode/mlops-bitbucket-project-seedcode-model-build.zip
+          ModelDeploySeedCode: AWSDEFAULT___PROJECT_NAME___/seedcode/mlops-bitbucket-project-seedcode-model-deploy.zip
+          Region: !Ref AWS::Region
+          AccountId: !Ref AWS::AccountId
+          Role: AWSDEFAULT___USE_ROLE___
+
+  SageMakerSeedCodeCheckinLambdaInvoker:
+    Type: 'AWS::CloudFormation::CustomResource'
+    Properties:
+      ServiceToken: !GetAtt GitSeedCodeCheckinLambda.Arn
+
+  ### Lambda function to start Bitbucket CI/CD Pipeline
+  BitbucketPipelineTriggerLambda:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Description: To trigger the Bitbucket Pipeline
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.8
+      FunctionName: !Sub sagemaker-${SageMakerProjectId}-bitbucket-trigger # max: 10+15+19=44 out of 64 max
+      Timeout: 6000
+      Role: AWSDEFAULT___USE_ROLE___
+      Code:
+        S3Bucket: AWSDEFAULT___CODE_STAGING_BUCKET___
+        S3Key: AWSDEFAULT___PROJECT_NAME___/seedcode/lambda-bitbucket-pipeline-trigger.zip
+      Environment:
+        Variables:
+          BitbucketServer: AWSDEFAULT___BITBUCKET_SERVER_URI___
+          DeployProjectName: !Sub ${ModelDeployCodeRepositoryName}
+          BuildProjectName: !Sub ${ModelBuildCodeRepositoryName}
+          BitbucketUsernameSecretName: AWSDEFAULT___BITBUCKET_USERNAME_TOKEN_SECRET_NAME___
+          BitbucketAppPasswordSecretName: AWSDEFAULT___BITBUCKET_APP_PASSWORD_TOKEN_SECRET_NAME___
+          Region: !Ref AWS::Region
+          WorkspaceName: !Sub ${WorkspaceName}
+
+  ModelDeploySageMakerEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      # Max length allowed: 64
+      Name: !Sub sagemaker-${SageMakerProjectName}-${SageMakerProjectId}-event-rule # max: 10+33+15+5=63 chars
+      Description: "Rule to trigger a deployment when SageMaker Model registry is updated with a new model package. For example, a new model package is registered with Registry"
+      EventPattern:
+        source:
+          - "aws.sagemaker"
+        detail-type:
+          - "SageMaker Model Package State Change"
+        detail:
+          ModelPackageGroupName:
+            - !Sub ${SageMakerProjectName}-${SageMakerProjectId}
+          ModelApprovalStatus:
+            - Approved
+      State: "ENABLED"
+      Targets:
+        -
+          Arn: !GetAtt BitbucketPipelineTriggerLambda.Arn
+          Id: !Sub sagemaker-${SageMakerProjectName}-trigger
+  
+  PermissionForEventsToInvokeLambda: 
+    Type: AWS::Lambda::Permission
+    Properties: 
+      FunctionName: !GetAtt BitbucketPipelineTriggerLambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ModelDeploySageMakerEventRule.Arn
+
+  ModelDeploySagemakerCodeRepository:
+    Type: 'AWS::SageMaker::CodeRepository'
+    DependsOn: SageMakerSeedCodeCheckinLambdaInvoker
+    Properties:
+      CodeRepositoryName: !Sub ${ModelDeployCodeRepositoryName}-${SageMakerProjectId}
+      GitConfig:
+        Branch: main
+        RepositoryUrl: !Sub ${RepositoryBaseUrl}/${WorkspaceName}/${ModelDeployCodeRepositoryName}-${SageMakerProjectId}
+      Tags:
+        - Key: "sagemaker:project-id"
+          Value: !Sub ${SageMakerProjectId}
+        - Key: "sagemaker:project-name"
+          Value: !Sub ${SageMakerProjectName}
+
+  ModelBuildSagemakerCodeRepository:
+    Type: 'AWS::SageMaker::CodeRepository'
+    DependsOn: SageMakerSeedCodeCheckinLambdaInvoker
+    Properties:
+      CodeRepositoryName: !Sub ${ModelBuildCodeRepositoryName}-${SageMakerProjectId}
+      GitConfig:
+        Branch: main
+        RepositoryUrl: !Sub ${RepositoryBaseUrl}/${WorkspaceName}/${ModelBuildCodeRepositoryName}-${SageMakerProjectId}
+      Tags:
+        - Key: "sagemaker:project-id"
+          Value: !Sub ${SageMakerProjectId}
+        - Key: "sagemaker:project-name"
+          Value: !Sub ${SageMakerProjectName}
