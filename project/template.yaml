@@ -14,11 +14,6 @@ Parameters:
     NoEcho: true
     Description: Service generated ID of the project.
 
-  BitbucketServer:
-    Type: String
-    MaxLength: 1024
-    Description: The path to the Bitbucket Server, e.g. 'https://api.bitbucket.org/2.0', http://10.0.0.1
-  
   RepositoryBaseUrl:
     Type: String
     MaxLength: 1024
@@ -39,41 +34,6 @@ Parameters:
     MaxLength: 1024
     Description: The name of the workspace in Bitbucket to create the repositories in.
   
-  BitbucketUserSecretName:
-    Type: String
-    MaxLength: 1023
-    Description: The Bitbucket Username to use
-  
-  BitbucketAppPasswordSecretName:
-    Type: String
-    MaxLength: 1024
-    Description: The Bitbucket App Password to use
-  
-  IAMAccessKeySecretName:
-    Type: String
-    MaxLength: 1024
-    Description: The IAM Access Key to use
-  
-  IAMSecretKeySecretName:
-    Type: String
-    MaxLength: 1024
-    Description: The IAM Secret Key to use
-  
-  StagingBucket:
-    Type: String
-    MaxLength: 1024
-    Description: S3 Bucket where Seed Code is placed.
-  
-  ProjectName:
-    Type: String
-    MaxLength: 1024
-    Description: S3 URI to Model Deploy Seed Code
-  
-  SageMakerRole:
-    Type: String
-    MaxLength: 1024
-    Description: SageMaker Role to run pipeline
-
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -81,15 +41,12 @@ Metadata:
         Label:
           default: "Code Repository Info"
         Parameters:
-          - BitbucketServer
           - RepositoryBaseUrl
           - ModelBuildCodeRepositoryName
           - ModelDeployCodeRepositoryName
           - WorkspaceName
         
     ParameterLabels:
-      BitbucketServer:
-        default: "Bitbucket Server URI. e.g. https://api.bitbucket.org/2.0"
       RepositoryBaseUrl:
         default: "Base URL for your Bitbucket Repositories. e.g. https://bitbucket.org/"
       ModelBuildCodeRepositoryName:
@@ -120,11 +77,11 @@ Resources:
       Environment:
         Variables:
           BitbucketServer: AWSDEFAULT___BITBUCKET_SERVER_URI___
-          WorkspaceName: !Sub ${WorkspaceName}
-          DeployProjectName: !Sub ${ModelDeployCodeRepositoryName}
-          BuildProjectName: !Sub ${ModelBuildCodeRepositoryName}
-          SageMakerProjectName: !Sub ${SageMakerProjectName}
-          SageMakerProjectId: !Sub ${SageMakerProjectId}
+          WorkspaceName: !Ref ${WorkspaceName}
+          DeployProjectName: !Ref ${ModelDeployCodeRepositoryName}
+          BuildProjectName: !Ref ${ModelBuildCodeRepositoryName}
+          SageMakerProjectName: !Ref ${SageMakerProjectName}
+          SageMakerProjectId: !Ref ${SageMakerProjectId}
           BitbucketUsernameSecretName: AWSDEFAULT___BITBUCKET_USERNAME_TOKEN_SECRET_NAME___
           BitbucketAppPasswordSecretName: AWSDEFAULT___BITBUCKET_APP_PASSWORD_TOKEN_SECRET_NAME___
           IAMAccessKeySecretName: AWSDEFAULT___IAM_ACCESS_KEY_SECRET_NAME___
