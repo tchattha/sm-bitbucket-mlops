@@ -301,7 +301,9 @@ Resources:
                     - 's3:ListBucket'
                     - 's3:ListObjects'
                     - 's3:DeleteObject'
-                  Resource: !Join ['',[!GetAtt BootstrapS3Bucket.Arn,'/*']]
+                  Resource: 
+                    - !Join ['',[!GetAtt BootstrapS3Bucket.Arn,'/*']]
+                    - !GetAtt BootstrapS3Bucket.Arn
 
   ServiceCatalogProduct:
     Type: AWS::ServiceCatalog::CloudFormationProduct
