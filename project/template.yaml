@@ -77,11 +77,11 @@ Resources:
       Environment:
         Variables:
           BitbucketServer: AWSDEFAULT___BITBUCKET_SERVER_URI___
-          WorkspaceName: !Ref ${WorkspaceName}
-          DeployProjectName: !Ref ${ModelDeployCodeRepositoryName}
-          BuildProjectName: !Ref ${ModelBuildCodeRepositoryName}
-          SageMakerProjectName: !Ref ${SageMakerProjectName}
-          SageMakerProjectId: !Ref ${SageMakerProjectId}
+          WorkspaceName: !Sub ${WorkspaceName}
+          DeployProjectName: !Sub ${ModelDeployCodeRepositoryName}
+          BuildProjectName: !Sub ${ModelBuildCodeRepositoryName}
+          SageMakerProjectName: !Sub ${SageMakerProjectName}
+          SageMakerProjectId: !Sub ${SageMakerProjectId}
           BitbucketUsernameSecretName: AWSDEFAULT___BITBUCKET_USERNAME_TOKEN_SECRET_NAME___
           BitbucketAppPasswordSecretName: AWSDEFAULT___BITBUCKET_APP_PASSWORD_TOKEN_SECRET_NAME___
           IAMAccessKeySecretName: AWSDEFAULT___IAM_ACCESS_KEY_SECRET_NAME___
