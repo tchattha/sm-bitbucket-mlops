@@ -174,6 +174,7 @@ def lambda_handler(event, context):
         if response.status_code//200 != 1:
             response_data = json.loads(response.content)
             raise Exception(response_data)
+        bitbucket_build_repo_url = response_data['links']['html']['href']
         logging.info(f'Bitbucket repository {bitbucket_repo_name_build} created')
 
     except Exception as e:
@@ -190,6 +191,7 @@ def lambda_handler(event, context):
         if response.status_code//200 != 1:
             response_data = json.loads(response.content)
             raise Exception(response_data)
+        bitbucket_deploy_repo_url = response_data['links']['html']['href']
         logging.info(f'Bitbucket repository {bitbucket_repo_name_deploy} created')
     except Exception as e:
         logging.error("The Model Deploy Repository could not be created using the Bitbucket API..")
@@ -336,5 +338,7 @@ def lambda_handler(event, context):
     cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
     
     return { 
-        'message' : "Bitbucket seedcode checkin successfully completed"
+        'message' : "Bitbucket seedcode checkin successfully completed",
+        'build_repo_url': bitbucket_build_repo_url,
+        'deploy_repo_url': bitbucket_deploy_repo_url
     }

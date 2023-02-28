@@ -120,6 +120,16 @@ Resources:
           BitbucketAppPasswordSecretName: AWSDEFAULT___BITBUCKET_APP_PASSWORD_TOKEN_SECRET_NAME___
           Region: !Ref AWS::Region
           WorkspaceName: !Sub ${WorkspaceName}
+  
+  SageMakerModelPackageGroupName:
+    Type: AWS::SageMaker::ModelPackageGroup
+    Properties: 
+      ModelPackageGroupName: !Sub ${SageMakerProjectName}-${SageMakerProjectId}
+      Tags:
+        - Key: "sagemaker:project-id"
+          Value: !Sub ${SageMakerProjectId}
+        - Key: "sagemaker:project-name"
+          Value: !Sub ${SageMakerProjectName}
 
   ModelDeploySageMakerEventRule:
     Type: AWS::Events::Rule
@@ -158,7 +168,7 @@ Resources:
       CodeRepositoryName: !Sub ${ModelDeployCodeRepositoryName}-${SageMakerProjectId}
       GitConfig:
         Branch: main
-        RepositoryUrl: !Sub ${RepositoryBaseUrl}/${WorkspaceName}/${ModelDeployCodeRepositoryName}-${SageMakerProjectId}
+        RepositoryUrl: !GetAtt SageMakerSeedCodeCheckinLambdaInvoker.build_repo_url
       Tags:
         - Key: "sagemaker:project-id"
           Value: !Sub ${SageMakerProjectId}
@@ -172,7 +182,7 @@ Resources:
       CodeRepositoryName: !Sub ${ModelBuildCodeRepositoryName}-${SageMakerProjectId}
       GitConfig:
         Branch: main
-        RepositoryUrl: !Sub ${RepositoryBaseUrl}/${WorkspaceName}/${ModelBuildCodeRepositoryName}-${SageMakerProjectId}
+        RepositoryUrl: !GetAtt SageMakerSeedCodeCheckinLambdaInvoker.deploy_repo_url
       Tags:
         - Key: "sagemaker:project-id"
           Value: !Sub ${SageMakerProjectId}
