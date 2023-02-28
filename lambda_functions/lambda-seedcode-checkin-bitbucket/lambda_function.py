@@ -143,7 +143,8 @@ def lambda_handler(event, context):
         return {'message' : FETCH_BITBUCKET_APP_PASSWORD_SECRET_ERROR_MSG}
     
     # Create the Bitbucket Project
-    project_json_data = {"key": project_id, "name": os.environ['SageMakerProjectName'].replace('-','_')}
+    logging.info(f"Project ID: {project_id.replace('-','_')}, Name: {os.environ['SageMakerProjectName']}")
+    project_json_data = {"key": project_id.replace('-','_'), "name": os.environ['SageMakerProjectName']}
     try:
         response = requests.post(f'{bitbucket_base_url}/workspaces/{workspace_name}/projects', 
                                  json=project_json_data, 
@@ -162,7 +163,7 @@ def lambda_handler(event, context):
         'scm': 'git',
         'is_private': True,
         'project': {
-            'key': project_id,
+            'key': project_id.replace('-','_'),
         },
     }
 
