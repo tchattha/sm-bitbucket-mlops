@@ -149,8 +149,8 @@ def lambda_handler(event, context):
         response = requests.post(f'{bitbucket_base_url}/workspaces/{workspace_name}/projects', 
                                  json=project_json_data, 
                                  auth=(bitbucket_username, bitbucket_password))
+        response_data = json.loads(response.content)
         if response.status_code//200 != 1:
-            response_data = json.loads(response.content)
             raise Exception(response_data)
         logging.info('Bitbucket Project created')
     except Exception as e:
@@ -171,8 +171,8 @@ def lambda_handler(event, context):
         response = requests.post(f'{bitbucket_base_url}/repositories/{workspace_name}/{bitbucket_repo_name_build}', 
                                  json=repo_json_data,
                                  auth=(bitbucket_username, bitbucket_password))
+        response_data = json.loads(response.content)
         if response.status_code//200 != 1:
-            response_data = json.loads(response.content)
             raise Exception(response_data)
         bitbucket_build_repo_url = response_data['links']['html']['href']
         logging.info(f'Bitbucket repository {bitbucket_repo_name_build} created')
@@ -188,8 +188,8 @@ def lambda_handler(event, context):
         response = requests.post(f'{bitbucket_base_url}/repositories/{workspace_name}/{bitbucket_repo_name_deploy}', 
                                  json=repo_json_data,
                                  auth=(bitbucket_username, bitbucket_password))
+        response_data = json.loads(response.content)
         if response.status_code//200 != 1:
-            response_data = json.loads(response.content)
             raise Exception(response_data)
         bitbucket_deploy_repo_url = response_data['links']['html']['href']
         logging.info(f'Bitbucket repository {bitbucket_repo_name_deploy} created')
@@ -218,10 +218,10 @@ def lambda_handler(event, context):
                                   bitbucket_repo_name_build, 
                                   (bitbucket_username, bitbucket_password), 
                                   variable['key'], variable['value'])
+        response_data = json.loads(response.content)
         if response.status_code//200 != 1:
             logging.error("The variable(s) could not be created using the Bitbucket API..")
             logging.error(response.text)
-            response_data = json.loads(response)
             cfnresponse.send(event, context, cfnresponse.FAILED, response_data)
             return {'message' : "Bitbucket repository variable creation failed."}
     logging.info(f'Bitbucket variables created for {bitbucket_repo_name_build}')
@@ -242,10 +242,10 @@ def lambda_handler(event, context):
                                   bitbucket_repo_name_deploy, 
                                   (bitbucket_username, bitbucket_password), 
                                   variable['key'], variable['value'])
+        response_data = json.loads(response.content)
         if response.status_code//200 != 1:
             logging.error("The variable(s) could not be created using the Bitbucket API..")
             logging.error(response.text)
-            response_data = json.loads(response)
             cfnresponse.send(event, context, cfnresponse.FAILED, response_data)
             return {'message' : "Bitbucket repository variable creation failed."}
     logging.info(f'Bitbucket variables created for {bitbucket_repo_name_deploy}')
@@ -272,17 +272,24 @@ def lambda_handler(event, context):
             z.extractall(model_build_directory)
             logging.info(f"Extracted all for {model_build_filename}")
     except:
-        logging.error("Invalid file")
-
+        response_data = {"message": f"Invalid file {model_build_filename}"}
+        cfnresponse.send(event, context, cfnresponse.FAILED, response_data)
+        logging.error(response_data['message'])
+        return response_data
+    
     try:
         with zipfile.ZipFile(model_deploy_filename) as z:
             z.extractall(model_deploy_directory)
             logging.info(f"Extracted all for {model_deploy_filename}")
     except:
-        logging.error("Invalid file")
+        response_data = {"message": f"Invalid file {model_deploy_filename}"}
+        cfnresponse.send(event, context, cfnresponse.FAILED, response_data)
+        logging.error(response_data['message'])
+        return response_data
 
     data = []
     for dir_path in (model_build_directory, model_deploy_directory):
+        logging.info(f"Reading files from {dir_path}")
         data_files = {}
         for path, _, files in os.walk(dir_path): 
             for name in files:
@@ -294,17 +301,19 @@ def lambda_handler(event, context):
                 else:
                     dir = dir_path + "/"
                     try:
+                        logging.info(f"Reading file at path: {full_file_path}")
                         data_files[full_file_path.split(dir)[1]] = open(full_file_path, 'rb').read()
                     except:
                         pass
         data.append(data_files)
-
+    
+    response_data = {}
     build_data, deploy_data = data[0], data[1]
-
     try:
         response = requests.post(f'{bitbucket_base_url}/repositories/{workspace_name}/{bitbucket_repo_name_build}/src', 
                                  files=build_data, 
                                  auth=(bitbucket_username, bitbucket_password))
+        
         if response.status_code//200 != 1:
             response_data = json.loads(response.content)
             raise Exception(response_data)
@@ -316,7 +325,7 @@ def lambda_handler(event, context):
         return { 
             'message' : "Bitbucket seedcode checkin failed."
         }
-    
+    response_data = {}
     try:
         response = requests.post(f'{bitbucket_base_url}/repositories/{workspace_name}/{bitbucket_repo_name_deploy}/src', 
                                  files=deploy_data, 
@@ -333,12 +342,12 @@ def lambda_handler(event, context):
             'message' : "Bitbucket seedcode checkin failed."
         }
     
-
-    logger.info("Successfully checked in seed code to Bitbucket..")
-    cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
-    
-    return { 
+    response_data = { 
         'message' : "Bitbucket seedcode checkin successfully completed",
         'build_repo_url': bitbucket_build_repo_url,
         'deploy_repo_url': bitbucket_deploy_repo_url
     }
+    logger.info("Successfully checked in seed code to Bitbucket..")
+    cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data)
+    
+    return response_data

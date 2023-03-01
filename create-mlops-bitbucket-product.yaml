@@ -366,6 +366,14 @@ Resources:
               - Effect: Allow
                 Action:
                   - 'sagemaker:AddTags'
+                  - 'sagemaker:CreateModelPackageGroup'
+                  - 'sagemaker:DescribeModelPackageGroup'
+                  - 'sagemaker:DeleteModelPackageGroup'
+                  - 'sagemaker:GetModelPackageGroupPolicy'
+                  - 'sagemaker:DeleteModelPackageGroupPolicy'
+                  - 'sagemaker:PutModelPackageGroupPolicy'
+                  - 'sagemaker:ListModelPackageGroups'
+                  - 'sagemaker:ListTags'
                 Resource: '*'
       RoleName: !Join ['-', ['SM-Bitbucket-Example-Launch-Role', !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref 'AWS::StackId']]]]]]
 
