@@ -2,6 +2,32 @@
 
 The MLOps template in this repo can be used to setup a SageMaker Project for model training and deployment using Bitbucket for SVC and Bitbucket Pipelines for CI/CD. 
 
+## Architecture Diagram
+
+Following resources will be created once you deploy the CloudFormation template: `create-mlops-bitbucket-product.yaml`
+![Create Service Catalog Product - Architecture Diagram](./images/ServiceCatalogDiag.png)
+
+#### User Journey
+![SageMaker Project - Architecture Diagram](./images/SMProjectDiag.png)
+
+When a Data Scientist creates a SageMaker Project from SageMaker Studio the resources mentioned in diagram above will be created and the following journey will begin:
+1. Custom Lambda function will be executed that creates the Bitbucket resources in your Bitbucket Workspace
+    - Model Build Repository
+    - Model Deploy Repository
+    - Bitbucket Build Pipeline
+    - Bitbucket Deploy Pipeline
+    - Bitbucket Respository Variables
+2. A Data Scientist clones the model build repository in __SageMaker Studio__ and make changes to the seed code and commits.
+3. Once a commit is created and pushed to the repository, the associated Bitbucket Pipeline defined in `bitbucket-pipelines.yaml` will begin to execute.
+4. The Bitbucket build pipeline will create a __SageMaker Pipeline__ and start its execution.
+5. After the __SageMaker Pipeline__ completes the execution, a model will be registered under the __Model Package Group__ for the project in __SageMaker Model Registry__.
+6. The Lead Data Scientist (or the Technical Lead/Project Owner) can approve this model if the evaluation criteria is fulfilled.
+7. As soon as the model is approved, using the __Event Bridge__ rule, a __Lambda__ function is triggered. The Lambda function intiates the Bitbucket deploy pipeline in model deploy repository.
+8. Bitbucket deploy pipeline reads the latest configuration and builds a __CloudFormation__ Stack for deployment in Staging and Production.
+9. Staging __CloudFormation__ Stack gets deployed with the latest configuration.
+10. The model is deployed at a __SageMaker Endpoint__ and __Model Registry__ is updated with the new stage.
+11. After obtaining confident results in staging environment, the Lead Data Scientist (Technical Lead/Project Owner) can manually approve the step in Bitbucket deploy pipeline to deploy the __CloudFormation__ Stack for deployment in production environment.
+
 ## Instructions
 
 ### Pre-requisites

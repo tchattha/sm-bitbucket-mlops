@@ -160,7 +160,7 @@ Resources:
       CodeRepositoryName: !Sub ${ModelDeployCodeRepositoryName}-${SageMakerProjectId}
       GitConfig:
         Branch: main
-        RepositoryUrl: !GetAtt SageMakerSeedCodeCheckinLambdaInvoker.build_repo_url
+        RepositoryUrl: !GetAtt SageMakerSeedCodeCheckinLambdaInvoker.deploy_repo_url
       Tags:
         - Key: "sagemaker:project-id"
           Value: !Sub ${SageMakerProjectId}
@@ -174,7 +174,7 @@ Resources:
       CodeRepositoryName: !Sub ${ModelBuildCodeRepositoryName}-${SageMakerProjectId}
       GitConfig:
         Branch: main
-        RepositoryUrl: !GetAtt SageMakerSeedCodeCheckinLambdaInvoker.deploy_repo_url
+        RepositoryUrl: !GetAtt SageMakerSeedCodeCheckinLambdaInvoker.build_repo_url
       Tags:
         - Key: "sagemaker:project-id"
           Value: !Sub ${SageMakerProjectId}

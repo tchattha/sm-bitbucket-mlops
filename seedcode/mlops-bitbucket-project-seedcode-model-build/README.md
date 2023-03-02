@@ -3,7 +3,7 @@
 The template provides a starting point for bringing your SageMaker Pipeline development to production.
 
 ```
-|-- codebuild-buildspec.yml
+|-- bitbucket-pipelines.yml
 |-- CONTRIBUTING.md
 |-- pipelines
 |   |-- abalone
@@ -20,8 +20,6 @@ The template provides a starting point for bringing your SageMaker Pipeline deve
 |-- sagemaker-pipelines-project.ipynb
 |-- setup.cfg
 |-- setup.py
-|-- tests
-|   `-- test_pipelines.py
 `-- tox.ini
 ```
 
@@ -36,10 +34,10 @@ You can also use the `sagemaker-pipelines-project.ipynb` notebook to experiment 
 
 A description of some of the artifacts is provided below:
 <br/><br/>
-Your codebuild execution instructions. This file contains the instructions needed to kick off an execution of the SageMaker Pipeline in the CICD system (via CodePipeline). You will see that this file has the fields definined for naming the Pipeline, ModelPackageGroup etc. You can customize them as required.
+Your build execution instructions. This file contains the instructions needed to kick off an execution of the SageMaker Pipeline in the CICD system (via Bitbucket Pipeline). You will see that this file has the fields definined for naming the Pipeline, ModelPackageGroup etc. You can customize them as required.
 
 ```
-|-- codebuild-buildspec.yml
+|-- bitbucket-pipelines.yml
 ```
 
 <br/><br/>
@@ -51,7 +49,7 @@ Your pipeline artifacts, which includes a pipeline module defining the required 
 |   |   |-- evaluate.py
 |   |   |-- __init__.py
 |   |   |-- pipeline.py
-|   |   `-- preprocess.py
+|   |   -- preprocess.py
 
 ```
 <br/><br/>
@@ -63,7 +61,7 @@ Utility modules for getting pipeline definition jsons and running pipelines (you
 |   |-- __init__.py
 |   |-- run_pipeline.py
 |   |-- _utils.py
-|   `-- __version__.py
+|   -- __version__.py
 ```
 <br/><br/>
 Python package artifacts:
@@ -72,15 +70,9 @@ Python package artifacts:
 |-- setup.py
 ```
 <br/><br/>
-A stubbed testing module for testing your pipeline as you develop:
-```
-|-- tests
-|   `-- test_pipelines.py
-```
-<br/><br/>
 The `tox` testing framework configuration:
 ```
-`-- tox.ini
+-- tox.ini
 ```
 
 ## Dataset for the Example Abalone Pipeline
