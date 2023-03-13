@@ -49,6 +49,11 @@ Parameters:
     Type: String
     Default: 'https://github.com/tchattha/sm-bitbucket-mlops/archive/main.zip'
     Description: 'URL for a Zip of the SageMaker Projects Examples GitHub Repo'
+  
+  RepositoryFolderNameParameter:
+    Type: String
+    Default: ''
+    Description: '[Optional] Name of the folder inside the repository (if the source code is not on the root of the repository)'
 
   SageMakerProjectsProjectNameParameter:
     Type: String
@@ -100,6 +105,7 @@ Metadata:
         Parameters: 
           - SageMakerProjectRepoZipParameter
           - SageMakerProjectsProjectNameParameter
+          - RepositoryFolderNameParameter
       - 
         Label: 
           default: "Bitbucket Configuration"
@@ -136,12 +142,15 @@ Metadata:
 
       SageMakerProjectRepoZipParameter:
         default: 'URL to the zipped version of your GitHub Repository'
+      
+      RepositoryFolderNameParameter:
+        default: 'Folder name inside repository where the seedcode is placed'
 
       SageMakerProjectsProjectNameParameter:
-        default: 'Project folder inside of the main repository for this project.'
+        default: 'Project folder inside of the main repository for this project'
       
       BitbucketServerURIParameter:
-        default: 'Server/API URI to bitbucket.'
+        default: 'Server/API URI to bitbucket'
 
       BitbucketUsernameParameter:
         default: 'Bitbucket Admin Username'
@@ -587,6 +596,7 @@ Resources:
               
                       sagemaker_projects_repo = event['ResourceProperties']['SageMakerProjectRepoZip']
                       sagemaker_projects_project_name = event['ResourceProperties']['SageMakerProjectsProjectName']
+                      repo_folder_name = event['ResourceProperties']['RepositoryFolderName']
                       
                       logger.info(f'begin fetch of zipped rep from github: {sagemaker_projects_repo}')
               
@@ -598,8 +608,13 @@ Resources:
                           zip_ref.extractall('/tmp')
                       
                       parent, child, files = next(os.walk('/tmp/'))
-                      local_extracted_path_root = os.path.join(parent, child[0])
+                      local_extracted_path_root = os.path.join(parent, child[0], repo_folder_name)
                       
+                      if not os.path.exists(local_extracted_path_root):
+                          message = f'Incorrect path, {repo_folder_name} does not exist'
+                          logger.error(message)
+                          raise Exception(message)
+
                       logger.info(f'github zip extracted to {local_extracted_path_root}')
               
                       logger.info(f'begin project template customizations')
@@ -692,6 +707,7 @@ Resources:
       ServiceToken: !GetAtt CustomBackedLambda.Arn
       BootStrapBucketName: !Ref BootstrapS3Bucket
       SageMakerProjectRepoZip: !Ref SageMakerProjectRepoZipParameter
+      RepositoryFolderName: !Ref RepositoryFolderNameParameter
       SageMakerProjectsProjectName: !Ref SageMakerProjectsProjectNameParameter
       TemplateSubstitutions:
         AWSDEFAULT___BITBUCKET_SERVER_URI___: !Ref BitbucketServerURIParameter
